@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import { errorHandaler } from "./../utils/error";
+import { errorHandaler } from "./../utils/error.js";
+import jwt from "jsonwebtoken";
 export const signup = async (req, res, next) => {
   try {
     const { userName, email, password } = req.body;
@@ -25,6 +26,11 @@ export const signin = async (req, res, next) => {
     if (!validuser) return next(errorHandaler(404, "user not found"));
     const validPassword = bcrypt.compareSync(password, validuser.password);
     if (!validPassword) return next(errorHandaler(401, "Wrong Crendtail"));
+    const token = jwt.sign({ id: validuser._id }, process.env.JWT_SECRET);
+    res
+      .cookie("access_token", token, { httpOnly: true })
+      .status(200)
+      .json(validuser);
   } catch (error) {
     next(error);
   }
