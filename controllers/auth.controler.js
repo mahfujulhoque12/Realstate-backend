@@ -27,10 +27,11 @@ export const signin = async (req, res, next) => {
     const validPassword = bcrypt.compareSync(password, validuser.password);
     if (!validPassword) return next(errorHandaler(401, "Wrong Crendtail"));
     const token = jwt.sign({ id: validuser._id }, process.env.JWT_SECRET);
+    const { password: pass, ...rest } = validuser._doc;
     res
       .cookie("access_token", token, { httpOnly: true })
       .status(200)
-      .json(validuser);
+      .json(rest);
   } catch (error) {
     next(error);
   }
