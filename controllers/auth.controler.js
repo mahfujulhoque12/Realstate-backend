@@ -28,8 +28,12 @@ export const signin = async (req, res, next) => {
     if (!validPassword) return next(errorHandaler(401, "Wrong Crendtail"));
     const token = jwt.sign({ id: validuser._id }, process.env.JWT_SECRET);
     const { password: pass, ...rest } = validuser._doc;
-    res
-      .cookie("access_token", token, { httpOnly: true })
+        res
+      .cookie("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // true on vercel
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      })
       .status(200)
       .json(rest);
   } catch (error) {
