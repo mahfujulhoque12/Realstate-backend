@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
+import listingRouter from "./routes/listing.router.js";
+
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -31,8 +33,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ✅ Routes - ADD THIS LINE
-app.use("/api/user", userRouter); // This was missing!
+app.use("/api/user", userRouter);
 app.use("/api", authRouter);
+app.use("/api/listing", listingRouter);
 
 // ✅ Default route
 app.get("/", (req, res) => {

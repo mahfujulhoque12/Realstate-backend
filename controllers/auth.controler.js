@@ -125,3 +125,52 @@ export const updateUser = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ Validate user ID
+    if (!id || id.length !== 24) {
+      return next(errorHandaler(400, "Invalid user ID"));
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return next(errorHandaler(404, "User not found"));
+    }
+    // ✅ Optional: Delete user's image from Cloudinary if exists
+    if (user.image) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = user.image.split("/");
+        const fileName = urlParts[urlParts.length - 1];
+        const publicId = fileName.split(".")[0]; // Remove file extension
+        const fullPublicId = `profile_images/${publicId}`;
+
+        await cloudinary.uploader.destroy(fullPublicId);
+        console.log(`Deleted image from Cloudinary: ${fullPublicId}`);
+      } catch (cloudinaryError) {
+        console.error("Error deleting image from Cloudinary:", cloudinaryError);
+        // Continue with user deletion even if image deletion fails
+      }
+    }
+    // ✅ Delete user from database
+    await User.findByIdAndDelete(id);
+
+    // ✅ Clear the cookie
+    res.clearCookie("access_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "User account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    next(error);
+  }
+};
