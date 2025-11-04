@@ -17,7 +17,7 @@ const app = express();
 app.use(
   cors({
     origin: "http://localhost:3000", // your Next.js frontend
-    credentials: true,               // allow cookies
+    credentials: true, // allow cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -30,8 +30,8 @@ app.options("*", cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Routes
-app.use("/api", userRouter);
+// ✅ Routes - ADD THIS LINE
+app.use("/api/user", userRouter); // This was missing!
 app.use("/api", authRouter);
 
 // ✅ Default route

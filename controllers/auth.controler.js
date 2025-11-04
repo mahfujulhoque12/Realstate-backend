@@ -2,6 +2,8 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { errorHandaler } from "./../utils/error.js";
 import jwt from "jsonwebtoken";
+import fs from "fs";
+import cloudinary from "../utils/cloudinary.js";
 export const signup = async (req, res, next) => {
   try {
     const { userName, email, password } = req.body;
@@ -28,7 +30,7 @@ export const signin = async (req, res, next) => {
     if (!validPassword) return next(errorHandaler(401, "Wrong Crendtail"));
     const token = jwt.sign({ id: validuser._id }, process.env.JWT_SECRET);
     const { password: pass, ...rest } = validuser._doc;
-        res
+    res
       .cookie("access_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production", // true on vercel
@@ -57,7 +59,8 @@ export const google = async (req, res, next) => {
     } else {
       // ✅ New user — register
       const generatedPassword =
-        Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        Math.random().toString(36).slice(-8) +
+        Math.random().toString(36).slice(-8);
       const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
 
       const newUser = new User({
@@ -82,5 +85,43 @@ export const google = async (req, res, next) => {
   } catch (error) {
     console.error("Google Auth Error:", error);
     next(error);
+  }
+};
+
+export const updateUser = async (req, res, next) => {
+  try {
+    const { userName, email, password } = req.body;
+
+    // ✅ Validate user ID
+    if (!req.params.id || req.params.id.length !== 24) {
+      return next(errorHandaler(400, "Invalid user ID"));
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return next(errorHandaler(404, "User not found"));
+
+    // ✅ Upload image if provided
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images",
+      });
+      user.image = uploadResult.secure_url;
+      fs.unlinkSync(req.file.path); // delete temp file
+    }
+
+    if (userName) user.userName = userName;
+    if (email) user.email = email;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    await user.save();
+
+    const { password: pass, ...rest } = user._doc;
+    res.status(200).json({ message: "Profile updated", user: rest });
+  } catch (err) {
+    console.error("Update user error:", err);
+    next(err);
   }
 };
